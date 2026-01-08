@@ -436,10 +436,8 @@ class AgentLightningTrainer(RayPPOTrainer):
                 norm_adv_by_std_in_grpo = self.config.algorithm.get(
                     "norm_adv_by_std_in_grpo", True
                 )  # GRPO adv normalization factor
-                compute_mean_std_cross_all_data = self.config.algorithm.get(
-                    "compute_mean_std_cross_all_data", True
-                )
-                
+                compute_mean_std_cross_all_data = self.config.algorithm.get("compute_mean_std_cross_all_data", True)
+
                 # Unified entry point for all advantage estimation algorithms
                 batch = compute_advantage(
                     batch,

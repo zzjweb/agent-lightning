@@ -1,5 +1,10 @@
-# Copyright 2024 Bytedance Ltd. and/or its affiliates
-# Copyright 2022 The HuggingFace Team. All rights reserved.
+# Copyright (c) Microsoft. All rights reserved.
+
+# type: ignore
+
+# This file is adapted from VeRL (verl/trainer/ppo/core_algos.py)
+# Original copyright: Copyright 2024 Bytedance Ltd. and/or its affiliates
+# Original copyright: Copyright 2022 The HuggingFace Team. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +17,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """
 Agent Lightning's customized advantage estimators with trajectory-level deduplication.
 
@@ -20,7 +26,7 @@ to support trajectory-level deduplication using (data_id, rollout_id) pairs.
 
 Modified algorithms:
 - GRPO: Added trajectory deduplication logic
-- GRPO_PASSK: Added trajectory deduplication logic  
+- GRPO_PASSK: Added trajectory deduplication logic
 - REINFORCE_PLUS_PLUS_BASELINE: Added trajectory deduplication logic
 - RLOO: Added trajectory deduplication logic
 
@@ -31,21 +37,19 @@ __all__ = ["register_adv_est", "get_adv_estimator_fn", "AdvantageEstimator"]
 
 from collections import defaultdict
 from copy import deepcopy
-from typing import Any, Optional
 from enum import Enum
+from typing import Any, Optional
 
 import numpy as np
 import torch
-
 import verl.utils.torch_functional as verl_F
 
 # Import core registry infrastructure from VeRL
-from verl.trainer.ppo.core_algos import (
+from verl.trainer.ppo.core_algos import (  # Import GAE function (used by trainer.py)
     ADV_ESTIMATOR_REGISTRY,
     AdvantageEstimator,
-    get_adv_estimator_fn,
-    # Import GAE function (used by trainer.py)
     compute_gae_advantage_return,
+    get_adv_estimator_fn,
 )
 
 
@@ -93,7 +97,7 @@ def compute_grpo_outcome_advantage(
             If True, the advantage is scaled by the std, as in the original GRPO.
             If False, the advantage is not scaled, as in Dr.GRPO (https://arxiv.org/abs/2503.20783).
         compute_mean_std_cross_all_data: bool
-            If True (more stable), the mean and std are computed across all data in the batch. 
+            If True (more stable), the mean and std are computed across all data in the batch.
             If False (i.e., standard episode-level adv), the mean and std are computed across N trajectories.
 
     Returns:
@@ -175,7 +179,7 @@ def compute_grpo_passk_outcome_advantage(
         epsilon: float for numerical stability
         norm_adv_by_std_in_grpo: if True, normalize advantage by std within group
         compute_mean_std_cross_all_data: bool
-            If True (more stable), the mean and std are computed across all data in the batch. 
+            If True (more stable), the mean and std are computed across all data in the batch.
             If False (i.e., standard episode-level adv), the mean and std are computed across N trajectories.
 
     Returns:
@@ -201,7 +205,9 @@ def compute_grpo_passk_outcome_advantage(
         for idx in id2scores:
             rewards = torch.stack(id2scores[idx])  # (k,)
             if rewards.numel() < 2:
-                raise ValueError(f"Pass@k requires at least 2 samples per group. Got {rewards.numel()} for group {idx}.")
+                raise ValueError(
+                    f"Pass@k requires at least 2 samples per group. Got {rewards.numel()} for group {idx}."
+                )
             topk, topk_idx = torch.topk(rewards, 2)
             r_max, r_second_max = topk[0], topk[1]
             i_max = id2indices[idx][topk_idx[0].item()]
@@ -221,7 +227,6 @@ def compute_reinforce_plus_plus_baseline_outcome_advantage(
     response_mask: torch.Tensor,
     index: np.ndarray,
     traj_index: np.ndarray,
-    reward_baselines: torch.Tensor,
     epsilon: float = 1e-6,
     compute_mean_std_cross_all_data: bool = True,
     config: Optional[Any] = None,
@@ -320,8 +325,9 @@ def compute_rloo_outcome_advantage(
         for i in range(bsz):
             response_num = len(id2score[index[i]])
             if response_num > 1:
-                scores[i] = scores[i] * response_num / (response_num - 1) - id2mean[index[i]] * response_num / (response_num - 1)
+                scores[i] = scores[i] * response_num / (response_num - 1) - id2mean[index[i]] * response_num / (
+                    response_num - 1
+                )
         scores = scores.unsqueeze(-1) * response_mask
 
     return scores, scores
-
